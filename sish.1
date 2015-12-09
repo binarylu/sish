@@ -1,0 +1,65 @@
+parse:
+        * seperate program package by '&'
+        * handle foreground and background
+        cmdline     := prog-pack [ '&' prog-pack ]* ['&'] LF
+
+        * seperate program by '|'
+        * handle pipeline
+        prog-pack   := prog [ '|' prog ]*
+
+        * analyze program
+        * handle execute and redirect
+        prog        := name [ args ]
+        args        := [redirect OR arg]+
+
+test cases:
+        [buildin]
+        'exit'
+        'exit '
+        'exit  aa bb dd'
+        'exit ls echo'
+        'echo'                  => '\n'
+        'echo '                 => '\n'
+        'echo word'             => 'word\n'
+        'echo word word2'       => 'word word2\n'
+        'echo   word   word2 '  => 'word word2\n'
+        'echo $?'               => '2\n'
+        'echo $$'               => '6378\n'
+        'cd'
+        'cd '
+        'cd ~'
+        'cd ~user'
+        'cd ~ /'
+
+        [non-buildin]
+        'ls'
+        'ls -lh'
+        
+        [mix buildin & non-buildin] use our 'echo', not system 'echo'
+        'echo 123 | ls'
+
+        [redirection] handle by system? by ourselves?
+        'echo 123 >test.txt'
+        'echo 123 >>test.txt'
+        'cat <test.c'
+        'echo 123 >test.txt 456'    => '123 456\n'
+
+        [pipeline] handle by system? by ourselves?
+        'echo 123 | cat'
+        'ls -l | cat'
+        'ls | sed 's/txt/tt/g' | cat'
+
+        [exit in pipeline]
+        'exit | echo 123'
+        'echo 123 | exit'
+        'echo 123 | exit | cat'
+
+        [background commands]
+        'echo aa bb dd &'
+        'ls . .. / &'
+
+        [strange]
+        'cd /usr & ls'
+        'echo 1 & echo 2'
+        'echo 1 & echo 2 & echo 3 &'
+
