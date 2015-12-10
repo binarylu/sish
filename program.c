@@ -27,3 +27,16 @@ prog_destroy(struct program **prog)
         }
 }
 
+void
+prog_destroy_all(struct program **prog)
+{
+        struct program *curr, *next;
+        curr = *prog;
+        while (curr != NULL) {
+                next = curr->next;
+                prog_destroy(&curr);
+                curr = next;
+        }
+        *prog = NULL;
+}
+
