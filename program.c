@@ -21,11 +21,17 @@ prog_create(void)
 void
 prog_destroy(struct program **prog)
 {
-    // free argv args
-        close((*prog)->infd);
-        close((*prog)->outfd);
-        close((*prog)->errfd);
         if (*prog != NULL) {
+                if ((*prog)->argv != NULL)
+                        free((*prog)->argv);
+                if ((*prog)->args != NULL)
+                        free((*prog)->args);
+                if ((*prog)->infd != STDIN_FILENO)
+                        close((*prog)->infd);
+                if ((*prog)->outfd != STDOUT_FILENO)
+                        close((*prog)->outfd);
+                if ((*prog)->errfd != STDERR_FILENO)
+                        close((*prog)->errfd);
                 free(*prog);
                 *prog = NULL;
         }
