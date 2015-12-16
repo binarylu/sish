@@ -58,11 +58,11 @@ execute(struct program *proglist)
         }
         for (;;) {
             p = proglist;
-            fd_from = STDIN_FILENO;
+            /*fd_from = STDIN_FILENO;
             fd_to = p->infd;
             if (transfer(fd_from, fd_to) < 0) {
                 fprintf(stderr, "fail to transfer");
-            }
+            }*/
             while (p) {
                 if (p->next != NULL) {
                     fd_from = p->outfd;
@@ -74,20 +74,22 @@ execute(struct program *proglist)
                 if (transfer(fd_from, fd_to) < 0) {
                     fprintf(stderr, "fail to transfer");
                 }
+                p = p->next;
             }
+            p = proglist;
             while (p) {
-                if (!p->isrunning)
-                    continue;
-
-                w = waitpid(p->pid, &status, WNOHANG);
-                if (w == -1) {
-                    perror("waitpid");
-                } else if (w == 0) {
-                    p->isrunning = 1;
-                } else {
-                    p->isrunning = 0;
-                    --count;
+                if (p->isrunning) {
+                    w = waitpid(p->pid, &status, WNOHANG);
+                    if (w == -1) {
+                        perror("waitpid");
+                    } else if (w == 0) {
+                        p->isrunning = 1;
+                    } else {
+                        p->isrunning = 0;
+                        --count;
+                    }
                 }
+                p = p->next;
             }
             if (count == 0)
                 break;

@@ -22,13 +22,13 @@ void
 prog_destroy(struct program **prog)
 {
     // free argv args
+        close((*prog)->infd);
+        close((*prog)->outfd);
+        close((*prog)->errfd);
         if (*prog != NULL) {
                 free(*prog);
                 *prog = NULL;
         }
-        close((*prog)->infd);
-        close((*prog)->outfd);
-        close((*prog)->errfd);
 }
 
 void
