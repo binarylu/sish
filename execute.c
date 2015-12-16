@@ -1,9 +1,9 @@
 #include "execute.h"
 
 int
-execute(struct program *proglist)
+execute(program *proglist)
 {
-    struct program *p;
+    program *p;
     int pid;
     int pipe1[2], pipe2[2];
 

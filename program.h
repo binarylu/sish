@@ -5,19 +5,23 @@
 
 #include <stdlib.h>
 
-struct program
+typedef enum {OVERWRITE, APPEND} _redirect_mode;
+
+typedef struct program
 {
         int pid;
         int argc;
         char **argv;
         char *args;
         struct program *next;
+        _redirect_mode redirect;
+        char *redirect_file;
         int infd;
         int outfd;
         int errfd;
         int bg; /* background */
         int isrunning;
-};
+} program;
 
 /* program operations */
 struct program * prog_create(void);
