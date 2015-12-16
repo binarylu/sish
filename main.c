@@ -44,13 +44,13 @@ main(int argc, char *argv[])
                                 }
                                 printf("\n");
                         } else {
-                                printf("run: %s\nargs: ", prog->argv[0]);
+                                /*printf("run: %s\nargs: ", prog->argv[0]);
                                 for (name = prog->argv + 1; *name != NULL; ++name) {
                                         printf("%s", *name);
                                         if (*(name + 1) != NULL)
                                                 printf(" ");
                                 }
-                                printf("\n");
+                                printf("\n");*/
                                 execute(proglist);
                         }
                 }

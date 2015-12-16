@@ -24,20 +24,21 @@ execute(program *proglist)
         } else if (pid == 0) { /* child process */
             close(pipe1[1]);
             close(pipe2[0]);
-            if (p->infd == STDIN_FILENO)
-                while ((dup2(pipe1[0], STDIN_FILENO) == -1) && (errno == EINTR));
-            else
+
+            if (p->infd != STDIN_FILENO)
                 while ((dup2(p->infd, STDIN_FILENO) == -1) && (errno == EINTR));
+            else if (p != proglist)
+                while ((dup2(pipe1[0], STDIN_FILENO) == -1) && (errno == EINTR));
 
-            if (p->outfd == STDOUT_FILENO)
-                while ((dup2(pipe2[1], STDOUT_FILENO) == -1) && (errno == EINTR));
-            else
+            if (p->outfd != STDOUT_FILENO)
                 while ((dup2(p->outfd, STDOUT_FILENO) == -1) && (errno == EINTR));
+            else if (p->next != NULL)
+                while ((dup2(pipe2[1], STDOUT_FILENO) == -1) && (errno == EINTR));
 
-            if (p->errfd == STDERR_FILENO)
-                while ((dup2(pipe2[1], STDERR_FILENO) == -1) && (errno == EINTR));
-            else
+            if (p->errfd != STDERR_FILENO)
                 while ((dup2(p->errfd, STDERR_FILENO) == -1) && (errno == EINTR));
+            else if (p->next != NULL)
+                while ((dup2(pipe2[1], STDERR_FILENO) == -1) && (errno == EINTR));
 
             break;
         } else { /* parent process */
@@ -64,27 +65,19 @@ execute(program *proglist)
         }
         for (;;) {
             p = proglist;
-            /*fd_from = STDIN_FILENO;
-            fd_to = p->infd;
-            if (transfer(fd_from, fd_to) < 0) {
-                fprintf(stderr, "fail to transfer");
-            }*/
             while (p) {
                 if (p->isrunning) {
-                    fd_from = p->pipe_out;
-                    fd_to = p->next == NULL ? STDOUT_FILENO : p->next->pipe_in;
-                    if (transfer(fd_from, fd_to) < 0) {
-                        RET_ERROR(-1, "fail to transfer data by pipe");
+                    if (p != proglist && p->next != NULL) {
+                        fd_from = p->pipe_out;
+                        fd_to = p->next->pipe_in;
+                        if (transfer(fd_from, fd_to) < 0) {
+                            RET_ERROR(-1, "fail to transfer data by pipe");
+                        }
                     }
-                }
-                p = p->next;
-            }
-            p = proglist;
-            while (p) {
-                if (p->isrunning) {
+
                     w = waitpid(p->pid, &status, WNOHANG);
                     if (w == -1) {
-                        WARNP("waitpid");
+                        RET_ERRORP(-1, "waitpid");
                     } else if (w == 0) {
                         p->isrunning = 1;
                     } else {
