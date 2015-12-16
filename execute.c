@@ -7,20 +7,20 @@ execute(struct program *proglist)
     int pid;
     int pipe1[2], pipe2[2];
 
-    if (proglist == NULL)
-        return -1;
+    if (proglist == NULL) {
+        RET_ERROR(-1, "proglist is NULL");
+    }
 
     p = proglist;
     while (p) {
         if (pipe(pipe1) == -1 || pipe(pipe2) == -1) {
-            perror("pipe failed!");
-            exit(EXIT_FAILURE);
+            DEBUGP("pipe failed!");
+            return -1;
         }
 
         pid = fork();
         if (pid < 0) {
-            perror("fork error");
-            exit(EXIT_FAILURE);
+            RET_ERRORP(-1, "fork error");
         } else if (pid == 0) { /* child process */
             close(pipe1[1]);
             while ((dup2(pipe1[0], STDIN_FILENO) == -1) && (errno == EINTR));
@@ -38,13 +38,9 @@ execute(struct program *proglist)
         p = p->next;
     }
 
-    if (pid < 0) {
-        perror("fork error");
-        exit(EXIT_FAILURE);
-    } else if (pid == 0) { /* child process */
+    if (pid == 0) { /* child process */
         if (execvp(p->argv[0], p->argv) == -1) {
-            perror("fail to execvp");
-            exit(EXIT_FAILURE);
+            RET_ERRORP(-1, "fail to execvp");
         }
         /*close(pipe1[0]);
         close(pipe2[1]);
@@ -72,7 +68,7 @@ execute(struct program *proglist)
                     fd_to = STDOUT_FILENO;
                 }
                 if (transfer(fd_from, fd_to) < 0) {
-                    fprintf(stderr, "fail to transfer");
+                    RET_ERROR(-1, "fail to transfer data by pipe");
                 }
                 p = p->next;
             }
@@ -81,12 +77,23 @@ execute(struct program *proglist)
                 if (p->isrunning) {
                     w = waitpid(p->pid, &status, WNOHANG);
                     if (w == -1) {
-                        perror("waitpid");
+                        WARNP("waitpid");
                     } else if (w == 0) {
                         p->isrunning = 1;
                     } else {
                         p->isrunning = 0;
                         --count;
+                        if (WIFEXITED(status)) {
+                            if (WEXITSTATUS(status) != 0) {
+                                WARN("child process exited incorrectly");
+                            }
+                        } else if (WIFSIGNALED(status)) {
+                            DEBUG("killed by signal %d\n", WTERMSIG(status));
+                        } else if (WIFSTOPPED(status)) {
+                            DEBUG("stopped by signal %d\n", WSTOPSIG(status));
+                        } else if (WIFCONTINUED(status)) {
+                            DEBUG("continued\n");
+                        }
                     }
                 }
                 p = p->next;
@@ -116,8 +123,7 @@ transfer(int fd_from, int fd_to)
 
     buffer = (char *)malloc(BUFFSIZE);
     if (buffer == NULL) {
-        perror("fail to malloc");
-        return -1;
+        RET_ERRORP(-1, "fail to amlloc");
     }
     while ((nread = read(fd_from, buffer, BUFFSIZE)) != 0) {
         if ((nread == -1) && (errno != EINTR)) {
