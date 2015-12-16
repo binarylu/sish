@@ -15,8 +15,8 @@ typedef struct program
         int infd; /* if no redirection, it is STDIN_FILENO */
         int outfd;
         int errfd;
-        int pipe_in; /* always be STDIN_FILENO */
-        int pipe_out; /* always be STDOUT_FILENO */
+        int pipe_in; /* write to STDIN_FILENO */
+        int pipe_out; /* read from STDOUT_FILENO */
         int bg; /* background */
         int isrunning;
 } program;

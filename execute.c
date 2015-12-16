@@ -23,16 +23,29 @@ execute(program *proglist)
             RET_ERRORP(-1, "fork error");
         } else if (pid == 0) { /* child process */
             close(pipe1[1]);
-            while ((dup2(pipe1[0], STDIN_FILENO) == -1) && (errno == EINTR));
             close(pipe2[0]);
-            while ((dup2(pipe2[1], STDOUT_FILENO) == -1) && (errno == EINTR));
+            if (p->infd == STDIN_FILENO)
+                while ((dup2(pipe1[0], STDIN_FILENO) == -1) && (errno == EINTR));
+            else
+                while ((dup2(p->infd, STDIN_FILENO) == -1) && (errno == EINTR));
+
+            if (p->outfd == STDOUT_FILENO)
+                while ((dup2(pipe2[1], STDOUT_FILENO) == -1) && (errno == EINTR));
+            else
+                while ((dup2(p->outfd, STDOUT_FILENO) == -1) && (errno == EINTR));
+
+            if (p->errfd == STDERR_FILENO)
+                while ((dup2(pipe2[1], STDERR_FILENO) == -1) && (errno == EINTR));
+            else
+                while ((dup2(p->errfd, STDERR_FILENO) == -1) && (errno == EINTR));
+
             break;
         } else { /* parent process */
             close(pipe1[0]);
             close(pipe2[1]);
             p->pid = pid;
-            p->infd = dup(pipe1[1]);
-            p->outfd = dup(pipe2[0]);
+            p->infd = pipe1[1];
+            p->outfd = pipe2[0];
             p->isrunning = 1;
         }
         p = p->next;
@@ -42,9 +55,6 @@ execute(program *proglist)
         if (execvp(p->argv[0], p->argv) == -1) {
             RET_ERRORP(-1, "fail to execvp");
         }
-        /*close(pipe1[0]);
-        close(pipe2[1]);
-        exit(0);*/
     } else { /* parent process */
         int fd_from, fd_to, w, status, count = 0;
         p = proglist;
@@ -60,13 +70,8 @@ execute(program *proglist)
                 fprintf(stderr, "fail to transfer");
             }*/
             while (p) {
-                if (p->next != NULL) {
-                    fd_from = p->outfd;
-                    fd_to = p->next->infd;
-                } else {
-                    fd_from = p->outfd;
-                    fd_to = STDOUT_FILENO;
-                }
+                fd_from = p->pipe_out;
+                fd_to = p->next == NULL ? STDOUT_FILENO : p->next->pipe_in;
                 if (transfer(fd_from, fd_to) < 0) {
                     RET_ERROR(-1, "fail to transfer data by pipe");
                 }
