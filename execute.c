@@ -67,19 +67,30 @@ execute(program *proglist)
             p = proglist;
             while (p) {
                 if (p->isrunning) {
-                    if (p != proglist && p->next != NULL) {
-                        fd_from = p->pipe_out;
-                        fd_to = p->next->pipe_in;
-                        if (transfer(fd_from, fd_to) < 0) {
-                            RET_ERROR(-1, "fail to transfer data by pipe");
-                        }
-                    }
 
                     w = waitpid(p->pid, &status, WNOHANG);
                     if (w == -1) {
                         RET_ERRORP(-1, "waitpid");
                     } else if (w == 0) {
                         p->isrunning = 1;
+                        if (WIFEXITED(status)) {
+                            if (WEXITSTATUS(status) != 0) {
+                                WARN("child process exited incorrectly");
+                            }
+                        } else if (WIFSIGNALED(status)) {
+                            DEBUG("0killed by signal %d\n", WTERMSIG(status));
+                        } else if (WIFSTOPPED(status)) {
+                            DEBUG("stopped by signal %d\n", WSTOPSIG(status));
+                        } else if (WIFCONTINUED(status)) {
+                            DEBUG("continued\n");
+                        }
+                    if (p->next != NULL) {
+                        fd_from = p->pipe_out;
+                        fd_to = p->next->pipe_in;
+                        if (transfer(fd_from, fd_to) < 0) {
+                            RET_ERROR(-1, "fail to transfer data by pipe");
+                        }
+                    }
                     } else {
                         p->isrunning = 0;
                         --count;
@@ -87,6 +98,15 @@ execute(program *proglist)
                             if (WEXITSTATUS(status) != 0) {
                                 WARN("child process exited incorrectly");
                             }
+                    if (p->next != NULL) {
+                        fd_from = p->pipe_out;
+                        fd_to = p->next->pipe_in;
+                        if (transfer(fd_from, fd_to) < 0) {
+                            RET_ERROR(-1, "fail to transfer data by pipe");
+                        }
+                        close(fd_from);
+                        close(fd_to);
+                    }
                         } else if (WIFSIGNALED(status)) {
                             DEBUG("killed by signal %d\n", WTERMSIG(status));
                         } else if (WIFSTOPPED(status)) {

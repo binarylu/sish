@@ -18,7 +18,7 @@ main(int argc, char *argv[])
         size_t cmdlen;
         int loop;
 
-        setprogname(argv[0]);
+        /*setprogname(argv[0]);*/
 
         cmd = NULL;
         cmdlen = 0;
@@ -52,6 +52,7 @@ main(int argc, char *argv[])
                                 }
                                 printf("\n");*/
                                 execute(proglist);
+                                break;
                         }
                 }
                 prog_destroy_all(&proglist);

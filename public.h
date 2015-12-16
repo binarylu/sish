@@ -5,7 +5,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-/*#define DEVELOPMENT*/
+#define DEVELOPMENT
 
 #define MSG(type, fmt, arg...)                      \
 do {                                                \
