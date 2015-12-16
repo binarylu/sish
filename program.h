@@ -5,8 +5,6 @@
 
 #include <stdlib.h>
 
-typedef enum {OVERWRITE, APPEND} _redirect_mode;
-
 typedef struct program
 {
         int pid;
@@ -14,11 +12,11 @@ typedef struct program
         char **argv;
         char *args;
         struct program *next;
-        _redirect_mode redirect;
-        char *redirect_file;
-        int infd;
+        int infd; /* if no redirection, it is STDIN_FILENO */
         int outfd;
         int errfd;
+        int pipe_in; /* always be STDIN_FILENO */
+        int pipe_out; /* always be STDOUT_FILENO */
         int bg; /* background */
         int isrunning;
 } program;
