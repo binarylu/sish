@@ -44,8 +44,8 @@ execute(program *proglist)
             close(pipe1[0]);
             close(pipe2[1]);
             p->pid = pid;
-            p->infd = pipe1[1];
-            p->outfd = pipe2[0];
+            p->pipe_in = pipe1[1];
+            p->pipe_out = pipe2[0];
             p->isrunning = 1;
         }
         p = p->next;
@@ -70,10 +70,12 @@ execute(program *proglist)
                 fprintf(stderr, "fail to transfer");
             }*/
             while (p) {
-                fd_from = p->pipe_out;
-                fd_to = p->next == NULL ? STDOUT_FILENO : p->next->pipe_in;
-                if (transfer(fd_from, fd_to) < 0) {
-                    RET_ERROR(-1, "fail to transfer data by pipe");
+                if (p->isrunning) {
+                    fd_from = p->pipe_out;
+                    fd_to = p->next == NULL ? STDOUT_FILENO : p->next->pipe_in;
+                    if (transfer(fd_from, fd_to) < 0) {
+                        RET_ERROR(-1, "fail to transfer data by pipe");
+                    }
                 }
                 p = p->next;
             }
