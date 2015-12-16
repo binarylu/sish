@@ -1,5 +1,3 @@
-#include <stdlib.h>
-
 #include "program.h"
 
 struct program *
@@ -7,6 +5,7 @@ prog_create(void)
 {
         struct program *prog;
         prog = (struct program *)malloc(sizeof(struct program));
+        prog->pid = -1;
         prog->argc = 0;
         prog->argv = NULL;
         prog->args = NULL;
@@ -15,16 +14,21 @@ prog_create(void)
         prog->outfd = 1;
         prog->errfd = 2;
         prog->bg = 0;
+        prog->isrunning = 0;
         return prog;
 }
 
 void
 prog_destroy(struct program **prog)
 {
+    // free argv args
         if (*prog != NULL) {
                 free(*prog);
                 *prog = NULL;
         }
+        close((*prog)->infd);
+        close((*prog)->outfd);
+        close((*prog)->errfd);
 }
 
 void

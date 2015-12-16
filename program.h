@@ -1,8 +1,13 @@
 #ifndef _PROGRAM_H_
 #define _PROGRAM_H_
 
+#include <unistd.h>
+
+#include <stdlib.h>
+
 struct program
 {
+        int pid;
         int argc;
         char **argv;
         char *args;
@@ -11,6 +16,7 @@ struct program
         int outfd;
         int errfd;
         int bg; /* background */
+        int isrunning;
 };
 
 /* program operations */

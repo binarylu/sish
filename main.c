@@ -5,6 +5,7 @@
 #include <unistd.h>
 
 #include "program.h"
+#include "execute.h"
 
 int
 main(int argc, char *argv[])
@@ -50,6 +51,7 @@ main(int argc, char *argv[])
                                                 printf(" ");
                                 }
                                 printf("\n");
+                                execute(proglist);
                         }
                 }
                 prog_destroy_all(&proglist);
