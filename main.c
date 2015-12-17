@@ -23,7 +23,7 @@ usage(void)
 static int
 run_cmd(char *cmdline)
 {
-        char **name;
+        //char **name;
         struct program *proglist, *prog;
         int retcode;
 
@@ -38,7 +38,8 @@ run_cmd(char *cmdline)
                 }
         }
 
-        for (prog = proglist; prog != NULL; prog = prog->next) {
+        execute(proglist);
+        /*for (prog = proglist; prog != NULL; prog = prog->next) {
                 assert( prog->argv != NULL );
                 assert( prog->argv[0] != NULL );
                 if (strcmp(prog->argv[0], "exit") == 0) {
@@ -59,10 +60,8 @@ run_cmd(char *cmdline)
                                         printf(", ");
                         }
                         printf("]\n");
-                        //execute(proglist);
-                        //break;
                 }
-        }
+        }*/
 
         prog_destroy_all(&proglist);
 

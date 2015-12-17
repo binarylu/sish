@@ -1,4 +1,53 @@
+#include <fcntl.h>
+#include <sys/wait.h>
+#include <unistd.h>
+
+#include <assert.h>
+#include <errno.h>
+#include <stdio.h>
+#include <stdlib.h>
+
+#include "public.h"
 #include "execute.h"
+
+static int
+execute_program(struct program *prog)
+{
+        char **arg;
+        char *dir;
+        int retcode;
+
+        assert(prog != NULL);
+        assert(prog->argv != NULL&& prog->argv[0] != NULL);
+
+        arg = NULL;
+        dir = NULL;
+        retcode = 0;
+        if (strcmp(prog->argv[0], "echo") == 0) {
+                for (arg = prog->argv + 1; *arg != NULL; ++arg) {
+                        printf("%s", *arg);
+                        if (*(arg + 1) != NULL)
+                                printf(" ");
+                }
+                printf("\n");
+        } else if (strcmp(prog->argv[0], "cd") == 0) {
+                if (prog->argc == 1)
+                        dir = getenv("HOME");
+                else if (prog->argc >= 2)
+                        dir = prog->argv[1];
+                if (dir != NULL && *dir != '\0') {
+                        if (chdir(dir) == -1)
+                                WARNP("failed to change working directory to '%s'",
+                                    dir);
+                }
+        } else if (strcmp(prog->argv[0], "exit") == 0) {
+                printf("EXIT sish...\n");
+        } else {
+                retcode = execvp(prog->argv[0], prog->argv);
+        }
+
+        return retcode;
+}
 
 int
 execute(program *proglist)
@@ -53,8 +102,8 @@ execute(program *proglist)
     }
 
     if (pid == 0) { /* child process */
-        if (execvp(p->argv[0], p->argv) == -1) {
-            RET_ERRORP(-1, "fail to execvp");
+        if (execute_program(p) == -1) {
+            RET_ERRORP(-1, "failed to execute program '%s'", p->argv[0]);
         }
     } else { /* parent process */
         int fd_from, fd_to, w, status, count = 0;
@@ -84,13 +133,16 @@ execute(program *proglist)
                         } else if (WIFCONTINUED(status)) {
                             DEBUG("continued\n");
                         }
-                    if (p->next != NULL) {
-                        fd_from = p->pipe_out;
-                        fd_to = p->next->pipe_in;
-                        if (transfer(fd_from, fd_to) < 0) {
-                            RET_ERROR(-1, "fail to transfer data by pipe");
+
+                        /*********/
+                        if (p->next != NULL) {
+                                fd_from = p->pipe_out;
+                                fd_to = p->next->pipe_in;
+                                if (transfer(fd_from, fd_to) < 0) {
+                                        RET_ERROR(-1, "failed to transfer data by pipe");
+                                }
                         }
-                    }
+
                     } else {
                         p->isrunning = 0;
                         --count;
@@ -98,15 +150,18 @@ execute(program *proglist)
                             if (WEXITSTATUS(status) != 0) {
                                 WARN("child process exited incorrectly");
                             }
-                    if (p->next != NULL) {
-                        fd_from = p->pipe_out;
-                        fd_to = p->next->pipe_in;
-                        if (transfer(fd_from, fd_to) < 0) {
-                            RET_ERROR(-1, "fail to transfer data by pipe");
-                        }
-                        close(fd_from);
-                        close(fd_to);
-                    }
+
+                            /*******/
+                            if (p->next != NULL) {
+                                    fd_from = p->pipe_out;
+                                    fd_to = p->next->pipe_in;
+                                    if (transfer(fd_from, fd_to) < 0) {
+                                            RET_ERROR(-1, "failed to transfer data by pipe");
+                                    }
+                                    close(fd_from);
+                                    close(fd_to);
+                            }
+
                         } else if (WIFSIGNALED(status)) {
                             DEBUG("killed by signal %d\n", WTERMSIG(status));
                         } else if (WIFSTOPPED(status)) {
@@ -143,7 +198,7 @@ transfer(int fd_from, int fd_to)
 
     buffer = (char *)malloc(BUFFSIZE);
     if (buffer == NULL) {
-        RET_ERRORP(-1, "fail to amlloc");
+        RET_ERRORP(-1, "failed to malloc");
     }
     while ((nread = read(fd_from, buffer, BUFFSIZE)) != 0) {
         if ((nread == -1) && (errno != EINTR)) {

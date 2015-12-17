@@ -228,6 +228,8 @@ parse_prog(struct program *prog, struct token **pptok, struct token *tend)
                         if (strncmp(curr->tstr, "<", curr->tlen) == 0) {
                                 tmp = next->tstr[next->tlen];
                                 next->tstr[next->tlen] = '\0';
+                                if (prog->infd != STDIN_FILENO)
+                                        close(prog->infd);
                                 fd = open(next->tstr, O_RDONLY);
                                 if (fd == -1) {
                                         WARNP("parse: can't open file '%s'", next->tstr);
@@ -238,10 +240,12 @@ parse_prog(struct program *prog, struct token **pptok, struct token *tend)
                                 next->tstr[next->tlen] = tmp;
                         } else {
                                 assert(strncmp(curr->tstr, ">", curr->tlen) == 0 ||
-                                                strncmp(curr->tstr, ">>", curr->tlen) == 0);
+                                    strncmp(curr->tstr, ">>", curr->tlen) == 0);
 
                                 tmp = next->tstr[next->tlen];
                                 next->tstr[next->tlen] = '\0';
+                                if (prog->outfd != STDOUT_FILENO)
+                                        close(prog->outfd);
                                 if (curr->tlen == 1)
                                         fd = open(next->tstr, O_CREAT | O_WRONLY);
                                 else
