@@ -1,3 +1,4 @@
+#include <assert.h>
 #include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -33,6 +34,8 @@ main(int argc, char *argv[])
                 proglist = parse_progpack(cmd);
 
                 for (prog = proglist; prog != NULL; prog = prog->next) {
+                        assert( prog->argv != NULL );
+                        assert( prog->argv[0] != NULL );
                         if (strcmp(prog->argv[0], "exit") == 0) {
                                 loop = 0;
                                 break;
@@ -44,15 +47,15 @@ main(int argc, char *argv[])
                                 }
                                 printf("\n");
                         } else {
-                                /*printf("run: %s\nargs: ", prog->argv[0]);
+                                printf("Run: %s [", prog->argv[0]);
                                 for (name = prog->argv + 1; *name != NULL; ++name) {
                                         printf("%s", *name);
                                         if (*(name + 1) != NULL)
-                                                printf(" ");
+                                                printf(", ");
                                 }
-                                printf("\n");*/
-                                execute(proglist);
-                                break;
+                                printf("]\n");
+                                //execute(proglist);
+                                //break;
                         }
                 }
                 prog_destroy_all(&proglist);

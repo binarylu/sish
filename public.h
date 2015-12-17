@@ -1,11 +1,12 @@
 #ifndef _PUBLIC_H_
 #define _PUBLIC_H_
 
+#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-#define DEVELOPMENT
+//#define DEVELOPMENT
 
 #define MSG(type, fmt, arg...)                      \
 do {                                                \
