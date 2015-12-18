@@ -8,6 +8,7 @@
 #include <string.h>
 #include <unistd.h>
 
+#include "public.h"
 #include "program.h"
 #include "execute.h"
 
@@ -82,6 +83,22 @@ mainloop(void)
                 free(cmd);
 }
 
+void
+set_environment(const char *p)
+{
+    char *path;
+    path = realpath(p, NULL);
+    if (path == NULL) {
+        WARNP("fail to get the path of sish");
+    }
+
+    if (setenv("SHELL", path, 1) == -1)
+        WARNP("fail to set environment SHELL");
+
+    if (path != NULL)
+        free(path);
+}
+
 int
 main(int argc, char *argv[])
 {
@@ -91,6 +108,9 @@ main(int argc, char *argv[])
 #ifdef __linux
         setprogname(argv[0]);
 #endif
+
+        set_environment(argv[0]);
+
         while ((ch = getopt(argc, argv, "xc:")) != -1) {
                 switch(ch) {
                 case 'c':
