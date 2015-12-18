@@ -1,0 +1,20 @@
+Function:
+
+* SHELL
+* EXIT STATUS
+* background commands
+
+Bug case:
+
+1. In pipe, make sure all program exists
+$ ls | a
+$ a | b | c
+$ hello
+
+2. sish block: 3 or more pipe
+$ echo 123 | cat | cat
+$ cat xx.h | grep inc | cat -n
+
+3. sish block: echo and output to file
+$ echo 123 >file.txt
+
