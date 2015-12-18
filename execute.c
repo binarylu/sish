@@ -55,12 +55,12 @@ execute(program *proglist)
     program *p;
     int pid;
     int pipe_fd[2], pipe_read;
+    pipe_read = STDIN_FILENO;
 
     if (proglist == NULL) {
         RET_ERROR(-1, "proglist is NULL");
     }
 
-    pipe_read = -1;
     p = proglist;
     while (p) {
         if (p->next != NULL)
@@ -94,7 +94,7 @@ execute(program *proglist)
         } else { /* parent process */
             if (p->next != NULL) {
                 close(pipe_fd[1]);
-                pipe_read = pipe_fd[0];
+                pipe_read = dup(pipe_fd[0]);
             }
 
             p->pid = pid;
@@ -108,7 +108,7 @@ execute(program *proglist)
             RET_ERRORP(-1, "failed to execute program '%s'", p->argv[0]);
         }
     } else { /* parent process */
-        int fd_from, fd_to, w, status, count = 0;
+        int w, status, count = 0;
         p = proglist;
         while (p) {
             ++count;
