@@ -7,7 +7,7 @@
 
 typedef struct program
 {
-        int pid;
+        pid_t pid;
         int argc;
         char **argv;
         char *args;
@@ -16,7 +16,6 @@ typedef struct program
         int outfd;
         int errfd;
         int bg; /* background */
-        int isrunning;
 } program;
 
 /* program operations */

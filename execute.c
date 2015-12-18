@@ -10,19 +10,17 @@
 #include "public.h"
 #include "execute.h"
 
-static int
+static void
 execute_program(struct program *prog)
 {
         char **arg;
         char *dir;
-        int retcode;
 
         assert(prog != NULL);
         assert(prog->argv != NULL&& prog->argv[0] != NULL);
 
         arg = NULL;
         dir = NULL;
-        retcode = 0;
         if (strcmp(prog->argv[0], "echo") == 0) {
                 for (arg = prog->argv + 1; *arg != NULL; ++arg) {
                         printf("%s", *arg);
@@ -43,17 +41,18 @@ execute_program(struct program *prog)
         } else if (strcmp(prog->argv[0], "exit") == 0) {
                 /* do nothing */
         } else {
-                retcode = execvp(prog->argv[0], prog->argv);
-                printf("Program '%s' return %d\n", prog->argv[0], retcode);
+                if (execvp(prog->argv[0], prog->argv) == -1)
+                        ERRORP("failed to execute program '%s'", prog->argv[0]);
         }
 
-        return retcode;
+        exit(EXIT_SUCCESS);
 }
 
 /* return 0 on success, -1 if error occurs */
 int
 execute(program *proglist)
 {
+    int bg;
     program *p;
     int pid;
     int pipe_fd[2], pipe_read;
@@ -92,7 +91,8 @@ execute(program *proglist)
             else if (p->next != NULL)
                 while ((dup2(pipe_fd[1], STDERR_FILENO) == -1) && (errno == EINTR));
 
-            break;
+            execute_program(p);
+            /* NOTREACHED */
         } else { /* parent process */
             if (p->next != NULL) {
                 close(pipe_fd[1]);
@@ -100,67 +100,52 @@ execute(program *proglist)
             }
 
             p->pid = pid;
-            p->isrunning = 1;
+            bg = p->bg;
         }
         p = p->next;
     }
 
-    if (pid == 0) { /* child process */
-        if (execute_program(p) == -1) {
-            ERRORP("failed to execute program '%s'", p->argv[0]);
-        }
-        exit(EXIT_SUCCESS);
-    } else { /* parent process */
-        int w, status, count = 0;
+    /* parent process */
+    int w, status;
+    static struct sigaction act, old_act;
+    if (bg) {
+        act.sa_handler = handle_sigchild;
+        act.sa_flags = SA_NOMASK;
+        sigaction(SIGCHLD, &act, &old_act);
+        p = NULL;
+    }
+    else {
+        sigaction(SIGCHLD, &old_act, NULL);
         p = proglist;
-        while (p) {
-            ++count;
-            p = p->next;
-        }
-        for (;;) {
-            p = proglist;
-            while (p) {
-                if (p->isrunning) {
+    }
 
-                    w = waitpid(p->pid, &status, 0);
-                    if (w == -1) {
-                        RET_ERRORP(-1, "waitpid");
-                    } else if (w == 0) {
-                        p->isrunning = 1;
-                        if (WIFEXITED(status)) {
-                            if (WEXITSTATUS(status) != 0) {
-                                WARN("child process exited incorrectly");
-                            }
-                        } else if (WIFSIGNALED(status)) {
-                            DEBUG("0killed by signal %d\n", WTERMSIG(status));
-                        } else if (WIFSTOPPED(status)) {
-                            DEBUG("stopped by signal %d\n", WSTOPSIG(status));
-                        } else if (WIFCONTINUED(status)) {
-                            DEBUG("continued\n");
-                        }
-                    } else {
-                        p->isrunning = 0;
-                        --count;
-                        if (WIFEXITED(status)) {
-                            if (WEXITSTATUS(status) != 0) {
-                                WARN("child process exited incorrectly");
-                            }
-                        } else if (WIFSIGNALED(status)) {
-                            DEBUG("killed by signal %d\n", WTERMSIG(status));
-                        } else if (WIFSTOPPED(status)) {
-                            DEBUG("stopped by signal %d\n", WSTOPSIG(status));
-                        } else if (WIFCONTINUED(status)) {
-                            DEBUG("continued\n");
-                        }
-                    }
-                }
-                p = p->next;
-            }
-            if (count == 0)
-                break;
+    while (p) {
+        w = waitpid(p->pid, &status, 0);
+        if (w == -1) {
+            RET_ERRORP(-1, "waitpid");
         }
+        if (WIFEXITED(status)) {
+            if (WEXITSTATUS(status) != 0) {
+                WARN("child process exited incorrectly");
+            }
+        } else if (WIFSIGNALED(status)) {
+            DEBUG("killed by signal %d\n", WTERMSIG(status));
+        } else if (WIFSTOPPED(status)) {
+            DEBUG("stopped by signal %d\n", WSTOPSIG(status));
+        } else if (WIFCONTINUED(status)) {
+            DEBUG("continued\n");
+        }
+
+        p = p->next;
     }
 
     return 0;
 }
 
+void
+handle_sigchild(int signo)
+{
+    pid_t pid;
+    int stat;
+    while ((pid = waitpid(-1, &stat, WNOHANG)) > 0);
+}

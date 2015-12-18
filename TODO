@@ -20,3 +20,6 @@ $ echo 123 >file.txt
 
 4. wrong parameter
 ls "-al"
+
+5.
+$ echo 123 | cat | cat -n | cat

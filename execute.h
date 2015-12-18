@@ -6,5 +6,6 @@
 #define BUFFSIZE 1024
 
 int execute(struct program *proglist);
+void handle_sigchild(int signo);
 
 #endif

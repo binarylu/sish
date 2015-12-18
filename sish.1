@@ -10,7 +10,17 @@ parse:
         * analyze program
         * handle execute and redirect
         prog        := name [ args ]
-        args        := [redirect OR arg]+
+        args        := redirect | arg
+
+        INPUT: command string
+        OUTPUT: program list
+
+        phrase 1: expand environment variables
+        phrase 2: tokenize, double-quoted string will be handled here
+        phrase 3: analyze token list, generate program list
+
+execute:
+        INPUT: program list
 
 test cases:
         [buildin]
