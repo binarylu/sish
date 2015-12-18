@@ -54,48 +54,50 @@ execute(program *proglist)
 {
     program *p;
     int pid;
-    int pipe1[2], pipe2[2];
+    int pipe_fd[2], pipe_read;
 
     if (proglist == NULL) {
         RET_ERROR(-1, "proglist is NULL");
     }
 
+    pipe_read = -1;
     p = proglist;
     while (p) {
-        if (pipe(pipe1) == -1 || pipe(pipe2) == -1) {
-            DEBUGP("pipe failed!");
-            return -1;
-        }
+        if (p->next != NULL)
+            if (pipe(pipe_fd) == -1) {
+                DEBUGP("pipe failed!");
+                return -1;
+            }
 
         pid = fork();
         if (pid < 0) {
             RET_ERRORP(-1, "fork error");
         } else if (pid == 0) { /* child process */
-            close(pipe1[1]);
-            close(pipe2[0]);
+            close(pipe_fd[0]);
 
             if (p->infd != STDIN_FILENO)
                 while ((dup2(p->infd, STDIN_FILENO) == -1) && (errno == EINTR));
             else if (p != proglist)
-                while ((dup2(pipe1[0], STDIN_FILENO) == -1) && (errno == EINTR));
+                while ((dup2(pipe_read, STDIN_FILENO) == -1) && (errno == EINTR));
 
             if (p->outfd != STDOUT_FILENO)
                 while ((dup2(p->outfd, STDOUT_FILENO) == -1) && (errno == EINTR));
             else if (p->next != NULL)
-                while ((dup2(pipe2[1], STDOUT_FILENO) == -1) && (errno == EINTR));
+                while ((dup2(pipe_fd[1], STDOUT_FILENO) == -1) && (errno == EINTR));
 
             if (p->errfd != STDERR_FILENO)
                 while ((dup2(p->errfd, STDERR_FILENO) == -1) && (errno == EINTR));
             else if (p->next != NULL)
-                while ((dup2(pipe2[1], STDERR_FILENO) == -1) && (errno == EINTR));
+                while ((dup2(pipe_fd[1], STDERR_FILENO) == -1) && (errno == EINTR));
 
             break;
         } else { /* parent process */
-            close(pipe1[0]);
-            close(pipe2[1]);
+            if (p->next != NULL) {
+                close(pipe_fd[1]);
+                pipe_read = pipe_fd[0];
+            }
+
             p->pid = pid;
-            p->pipe_in = pipe1[1];
-            p->pipe_out = pipe2[0];
             p->isrunning = 1;
         }
         p = p->next;
@@ -117,7 +119,7 @@ execute(program *proglist)
             while (p) {
                 if (p->isrunning) {
 
-                    w = waitpid(p->pid, &status, WNOHANG);
+                    w = waitpid(p->pid, &status, 0);
                     if (w == -1) {
                         RET_ERRORP(-1, "waitpid");
                     } else if (w == 0) {
@@ -135,13 +137,13 @@ execute(program *proglist)
                         }
 
                         /*********/
-                        if (p->next != NULL) {
+                        /*if (p->next != NULL) {
                                 fd_from = p->pipe_out;
                                 fd_to = p->next->pipe_in;
                                 if (transfer(fd_from, fd_to) < 0) {
                                         RET_ERROR(-1, "failed to transfer data by pipe");
                                 }
-                        }
+                        }*/
 
                     } else {
                         p->isrunning = 0;
@@ -152,7 +154,7 @@ execute(program *proglist)
                             }
 
                             /*******/
-                            if (p->next != NULL) {
+                            /*if (p->next != NULL) {
                                     fd_from = p->pipe_out;
                                     fd_to = p->next->pipe_in;
                                     if (transfer(fd_from, fd_to) < 0) {
@@ -160,7 +162,7 @@ execute(program *proglist)
                                     }
                                     close(fd_from);
                                     close(fd_to);
-                            }
+                            }*/
 
                         } else if (WIFSIGNALED(status)) {
                             DEBUG("killed by signal %d\n", WTERMSIG(status));

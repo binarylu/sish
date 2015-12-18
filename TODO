@@ -18,3 +18,5 @@ $ cat xx.h | grep inc | cat -n
 3. sish block: echo and output to file
 $ echo 123 >file.txt
 
+4. wrong parameter
+ls "-al"
