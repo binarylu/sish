@@ -5,7 +5,7 @@
 
 #define BUFFSIZE 1024
 
-int execute(struct program *proglist);
+int execute(struct program *proglist, int xflag);
 void handle_sigchild(int signo);
 
 #endif

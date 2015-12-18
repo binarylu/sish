@@ -8,6 +8,7 @@
 #include <string.h>
 #include <unistd.h>
 
+#include "public.h"
 #include "program.h"
 #include "execute.h"
 
@@ -37,11 +38,11 @@ run_cmd(char *cmdline)
         retcode = 1;
         proglist = parse_progpack(cmdline);
 
-        if (xflag) {
+        /*if (xflag) {
                 for (prog = proglist; prog != NULL; prog = prog->next) {
                         fprintf(stderr, "+ %s\n", prog->argv[0]);
                 }
-        }
+        }*/
 
         if (proglist != NULL)
         {
@@ -50,7 +51,7 @@ run_cmd(char *cmdline)
                                 strcmp(prog->argv[0], "exit") == 0)
                         retcode = 0;
                 else
-                        execute(proglist);
+                        execute(proglist, xflag);
 
                 prog_destroy_all(&proglist);
         }
@@ -82,6 +83,22 @@ mainloop(void)
                 free(cmd);
 }
 
+void
+set_environment(const char *p)
+{
+    char *path;
+    path = realpath(p, NULL);
+    if (path == NULL) {
+        WARNP("fail to get the path of sish");
+    }
+
+    if (setenv("SHELL", path, 1) == -1)
+        WARNP("fail to set environment SHELL");
+
+    if (path != NULL)
+        free(path);
+}
+
 int
 main(int argc, char *argv[])
 {
@@ -91,6 +108,9 @@ main(int argc, char *argv[])
 #ifdef __linux
         setprogname(argv[0]);
 #endif
+
+        set_environment(argv[0]);
+
         while ((ch = getopt(argc, argv, "xc:")) != -1) {
                 switch(ch) {
                 case 'c':

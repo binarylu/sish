@@ -56,7 +56,7 @@ execute_program(struct program *prog)
 
 /* return 0 on success, -1 if error occurs */
 int
-execute(program *proglist)
+execute(program *proglist, int xflag)
 {
         int bg;
         program *p;
