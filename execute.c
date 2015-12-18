@@ -70,6 +70,8 @@ execute(program *proglist, int xflag)
 
         p = proglist;
         while (p) {
+                if (xflag)
+                        fprintf(stderr, "+ %s\n", p->argv[0]);
                 if (p->next != NULL)
                         if (pipe(pipe_fd) == -1) {
                                 DEBUGP("pipe failed!");
