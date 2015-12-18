@@ -31,11 +31,8 @@ usage(void)
 static int
 run_cmd(char *cmdline)
 {
-        //char **name;
         struct program *proglist, *prog;
         int retcode;
-
-        //printf("GET: '%s'\n", cmdline);
 
         retcode = 1;
         proglist = parse_progpack(cmdline);
@@ -46,32 +43,17 @@ run_cmd(char *cmdline)
                 }
         }
 
-        execute(proglist);
-        /*for (prog = proglist; prog != NULL; prog = prog->next) {
-                assert( prog->argv != NULL );
-                assert( prog->argv[0] != NULL );
-                if (strcmp(prog->argv[0], "exit") == 0) {
+        if (proglist != NULL)
+        {
+                prog = proglist;
+                if (prog->next == NULL && prog->bg == 0 &&
+                                strcmp(prog->argv[0], "exit") == 0)
                         retcode = 0;
-                        break;
-                } else if (strcmp(prog->argv[0], "echo") == 0) {
-                        for (name = prog->argv + 1; *name != NULL; ++name) {
-                                printf("%s", *name);
-                                if (*(name + 1) != NULL)
-                                        printf(" ");
-                        }
-                        printf("\n");
-                } else {
-                        printf("Run: %s [", prog->argv[0]);
-                        for (name = prog->argv + 1; *name != NULL; ++name) {
-                                printf("%s", *name);
-                                if (*(name + 1) != NULL)
-                                        printf(", ");
-                        }
-                        printf("]\n");
-                }
-        }*/
+                else
+                        execute(proglist);
 
-        prog_destroy_all(&proglist);
+                prog_destroy_all(&proglist);
+        }
 
         return retcode;
 }

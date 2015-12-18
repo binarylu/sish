@@ -181,9 +181,10 @@ static int
 parse_prog(struct program *prog, struct token **pptok, struct token *tend)
 {
         struct token *curr, *next, *start;
-        int err, fd;
-        int argc;
         char **parg;
+        char *ps;
+        int err, fd, zlen;
+        int argc;
         char tmp;
 
         assert( prog != NULL && pptok != NULL && tend != NULL );
@@ -293,19 +294,35 @@ parse_prog(struct program *prog, struct token **pptok, struct token *tend)
                 prog->args = strdup(start->tstr);
                 prog->argv = (char **)malloc((argc + 1) * sizeof(char **));
 
-                parg = prog->argv;
+                /* set invalid area to '\0' */
+                ps = prog->args;
                 for (curr = start;
                      curr != tend && curr->ttype != TT_PIPE; ++curr) {
                         next = curr + 1;
-                        if (next != tend)
-                                memset(prog->args + (curr->tstr - start->tstr) + curr->tlen, 0,
-                                       (next->tstr - curr->tstr) - curr->tlen);
+                        if (curr->ttype == TT_EMPTY)
+                                memset(ps, 0, curr->tlen);
+                        ps += curr->tlen;
+                        if (next != tend) {
+                                zlen = (next->tstr - curr->tstr) - curr->tlen;
+                                memset(ps, 0, zlen);
+                                ps += zlen;
+                        }
+                        else {
+                                zlen = strlen(curr->tstr) - curr->tlen;
+                                memset(ps, 0, zlen);
+                                ps += zlen;
+                        }
+                }
+
+                /* set program argv */
+                parg = prog->argv;
+                for (curr = start;
+                     curr != tend && curr->ttype != TT_PIPE; ++curr) {
                         switch(curr->ttype) {
                         case TT_NORMAL:
                                 *(parg++) = prog->args + (curr->tstr - start->tstr);
                                 break;
                         case TT_EMPTY:
-                                memset(prog->args + (curr->tstr - start->tstr), 0, curr->tlen);
                                 break;
                         default:
                                 WARN("parse: unexpected token type %d", curr->ttype);
