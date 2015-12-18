@@ -143,14 +143,7 @@ execute(struct program *proglist, int xflag)
                 }
                 if (WIFEXITED(status)) {
                         set_exitcode(WEXITSTATUS(status));
-                } else if (WIFSIGNALED(status)) {
-                        DEBUG("killed by signal %d\n", WTERMSIG(status));
-                } else if (WIFSTOPPED(status)) {
-                        DEBUG("stopped by signal %d\n", WSTOPSIG(status));
-                } else if (WIFCONTINUED(status)) {
-                        DEBUG("continued\n");
                 }
-
                 p = p->next;
         }
 

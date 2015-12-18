@@ -1,13 +1,6 @@
-HDR = $(wildcard *.h)
-SRC = $(wildcard *.c)
-
-.Phony: all clean
-
-all : sish
-
-clean :
-	rm sish
+HDR = execute.h program.h public.h
+SRC = execute.c main.c parse.c program.c
 
 sish : ${SRC} ${HDR}
-	gcc -g -Wall ${SRC} -o $@ -lbsd
+	gcc -g -Wall ${SRC} -o sish
 
