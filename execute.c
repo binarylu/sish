@@ -96,8 +96,8 @@ execute(program *proglist, int xflag)
 
                         if (p->errfd != STDERR_FILENO)
                                 while ((dup2(p->errfd, STDERR_FILENO) == -1) && (errno == EINTR));
-                        else if (p->next != NULL)
-                                while ((dup2(pipe_fd[1], STDERR_FILENO) == -1) && (errno == EINTR));
+                        /*else if (p->next != NULL)
+                                while ((dup2(pipe_fd[1], STDERR_FILENO) == -1) && (errno == EINTR));*/
 
                         execute_program(p);
                         /* NOTREACHED */
