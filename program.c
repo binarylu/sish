@@ -1,5 +1,19 @@
 #include "program.h"
 
+static int exitcode;
+
+int
+get_exitcode(void)
+{
+        return exitcode;
+}
+
+void
+set_exitcode(int code)
+{
+        exitcode = code;
+}
+
 struct program *
 prog_create(void)
 {

@@ -1,4 +1,5 @@
 #include <fcntl.h>
+#include <sys/stat.h>
 
 #include <assert.h>
 #include <ctype.h>
@@ -11,12 +12,6 @@
 #include "program.h"
 
 #define TOKEN_MAX 1024
-
-static int
-getexitcode(void)
-{
-        return 0;
-}
 
 static char *
 env_expand(char *cmdline) {
@@ -48,7 +43,7 @@ env_expand(char *cmdline) {
                                 p2 += snprintf(p2, end2 - p2, "%d", getpid());
                                 p += 2;
                         } else if (*p == '$' && *(p + 1) == '?') {
-                                p2 += snprintf(p2, end2 - p2, "%d", getexitcode());
+                                p2 += snprintf(p2, end2 - p2, "%d", get_exitcode());
                                 p += 2;
                         } else {
                                 *(p2++) = *(p++);
@@ -248,9 +243,11 @@ parse_prog(struct program *prog, struct token **pptok, struct token *tend)
                                 if (prog->outfd != STDOUT_FILENO)
                                         close(prog->outfd);
                                 if (curr->tlen == 1)
-                                        fd = open(next->tstr, O_CREAT | O_WRONLY);
+                                        fd = open(next->tstr, O_WRONLY | O_CREAT | O_TRUNC,
+                                                  S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
                                 else
-                                        fd = open(next->tstr, O_CREAT | O_WRONLY | O_TRUNC);
+                                        fd = open(next->tstr, O_WRONLY | O_CREAT | O_APPEND,
+                                                  S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
                                 if (fd == -1) {
                                         WARNP("parse: can't open file '%s'", next->tstr);
                                         err = 1;
@@ -360,6 +357,7 @@ parse_progpack(char *cmdline)
         }
         tend = tokbuf + ntoken;
 
+#ifdef DEVELOPMENT
         printf("Tokens: %d [", ntoken);
         for (ptok = tokbuf; ptok != tend; ++ptok) {
                 printf("%.*s", ptok->tlen, ptok->tstr);
@@ -367,6 +365,7 @@ parse_progpack(char *cmdline)
                         printf(", ");
         }
         printf("]\n");
+#endif
 
         /* Analyze token stream, generate program list */
         err = 0;

@@ -18,6 +18,10 @@ typedef struct program
         int bg; /* background */
 } program;
 
+/* program exit code */
+int get_exitcode(void);
+void set_exitcode(int code);
+
 /* program operations */
 struct program * prog_create(void);
 void prog_destroy(struct program **prog);
