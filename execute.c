@@ -56,10 +56,11 @@ execute_program(struct program *prog)
 
 /* return 0 on success, -1 if error occurs */
 int
-execute(program *proglist, int xflag)
+execute(struct program *proglist, int xflag)
 {
+        struct program *p;
+        char **parg;
         int bg;
-        program *p;
         int pid;
         int pipe_fd[2], pipe_read;
         pipe_read = STDIN_FILENO;
@@ -70,8 +71,12 @@ execute(program *proglist, int xflag)
 
         p = proglist;
         while (p) {
-                if (xflag)
-                        fprintf(stderr, "+ %s\n", p->argv[0]);
+                if (xflag) {
+                        fprintf(stderr, "+");
+                        for (parg = p->argv; *parg; ++parg)
+                                fprintf(stderr, " %s", *parg);
+                        fprintf(stderr, "\n");
+                }
                 if (p->next != NULL)
                         if (pipe(pipe_fd) == -1) {
                                 DEBUGP("pipe failed!");
