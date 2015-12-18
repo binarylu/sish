@@ -1,6 +1,8 @@
 #ifndef _PUBLIC_H_
 #define _PUBLIC_H_
 
+#include <signal.h>
+
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>

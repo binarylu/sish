@@ -52,6 +52,7 @@ execute_program(struct program *prog)
 int
 execute(program *proglist)
 {
+    int bg;
     program *p;
     int pid;
     int pipe_fd[2], pipe_read;
@@ -90,6 +91,10 @@ execute(program *proglist)
             else if (p->next != NULL)
                 while ((dup2(pipe_fd[1], STDERR_FILENO) == -1) && (errno == EINTR));
 
+            if (execute_program(p) == -1) {
+                ERRORP("failed to execute program '%s'", p->argv[0]);
+            }
+
             break;
         } else { /* parent process */
             if (p->next != NULL) {
@@ -98,134 +103,42 @@ execute(program *proglist)
             }
 
             p->pid = pid;
-            p->isrunning = 1;
+            bg = p->bg;
         }
         p = p->next;
     }
 
-    if (pid == 0) { /* child process */
-        if (execute_program(p) == -1) {
-            RET_ERRORP(-1, "failed to execute program '%s'", p->argv[0]);
+    /* parent process */
+    int w, status;
+    p = bg ? NULL : proglist;
+    while (p) {
+        w = waitpid(p->pid, &status, 0);
+        if (w == -1) {
+            RET_ERRORP(-1, "waitpid");
         }
-    } else { /* parent process */
-        int w, status, count = 0;
-        p = proglist;
-        while (p) {
-            ++count;
-            p = p->next;
-        }
-        for (;;) {
-            p = proglist;
-            while (p) {
-                if (p->isrunning) {
 
-                    w = waitpid(p->pid, &status, 0);
-                    if (w == -1) {
-                        RET_ERRORP(-1, "waitpid");
-                    } else if (w == 0) {
-                        p->isrunning = 1;
-                        if (WIFEXITED(status)) {
-                            if (WEXITSTATUS(status) != 0) {
-                                WARN("child process exited incorrectly");
-                            }
-                        } else if (WIFSIGNALED(status)) {
-                            DEBUG("0killed by signal %d\n", WTERMSIG(status));
-                        } else if (WIFSTOPPED(status)) {
-                            DEBUG("stopped by signal %d\n", WSTOPSIG(status));
-                        } else if (WIFCONTINUED(status)) {
-                            DEBUG("continued\n");
-                        }
-
-                        /*********/
-                        /*if (p->next != NULL) {
-                                fd_from = p->pipe_out;
-                                fd_to = p->next->pipe_in;
-                                if (transfer(fd_from, fd_to) < 0) {
-                                        RET_ERROR(-1, "failed to transfer data by pipe");
-                                }
-                        }*/
-
-                    } else {
-                        p->isrunning = 0;
-                        --count;
-                        if (WIFEXITED(status)) {
-                            if (WEXITSTATUS(status) != 0) {
-                                WARN("child process exited incorrectly");
-                            }
-
-                            /*******/
-                            /*if (p->next != NULL) {
-                                    fd_from = p->pipe_out;
-                                    fd_to = p->next->pipe_in;
-                                    if (transfer(fd_from, fd_to) < 0) {
-                                            RET_ERROR(-1, "failed to transfer data by pipe");
-                                    }
-                                    close(fd_from);
-                                    close(fd_to);
-                            }*/
-
-                        } else if (WIFSIGNALED(status)) {
-                            DEBUG("killed by signal %d\n", WTERMSIG(status));
-                        } else if (WIFSTOPPED(status)) {
-                            DEBUG("stopped by signal %d\n", WSTOPSIG(status));
-                        } else if (WIFCONTINUED(status)) {
-                            DEBUG("continued\n");
-                        }
-                    }
-                }
-                p = p->next;
+        if (WIFEXITED(status)) {
+            if (WEXITSTATUS(status) != 0) {
+                WARN("child process exited incorrectly");
             }
-            if (count == 0)
-                break;
+        } else if (WIFSIGNALED(status)) {
+            DEBUG("killed by signal %d\n", WTERMSIG(status));
+        } else if (WIFSTOPPED(status)) {
+            DEBUG("stopped by signal %d\n", WSTOPSIG(status));
+        } else if (WIFCONTINUED(status)) {
+            DEBUG("continued\n");
         }
+
+        p = p->next;
     }
 
     return 0;
 }
 
-int
-transfer(int fd_from, int fd_to)
+void
+handle_sigchild(int signo)
 {
-    int ret = 0;
-    char *buffer;
-    char *ptr;
-    ssize_t nread, nwrite;
-
-    if (fcntl(fd_from, F_GETFL) < 0 && errno == EBADF) {
-        return 0;
-    }
-    if (fcntl(fd_to, F_GETFL) < 0 && errno == EBADF) {
-        return 0;
-    }
-
-    buffer = (char *)malloc(BUFFSIZE);
-    if (buffer == NULL) {
-        RET_ERRORP(-1, "failed to malloc");
-    }
-    while ((nread = read(fd_from, buffer, BUFFSIZE)) != 0) {
-        if ((nread == -1) && (errno != EINTR)) {
-            ret = -1;
-            break;
-        }
-        ptr = buffer;
-        while ((nwrite = write(fd_to, ptr, nread)) != 0) {
-            if ((nwrite == -1) && (errno != EINTR)) {
-                ret = -1;
-                break;
-            } else if (nwrite == nread) {
-                ret = 0;
-                break;
-            } else if (nwrite > 0) {
-                ptr += nwrite;
-                nread -= nwrite;
-            }
-        }
-        if (nwrite == -1) {
-            ret = -1;
-            break;
-        }
-    }
-
-    free(buffer);
-    return ret;
+    pid_t pid;
+    int stat;
+    while ((pid = waitpid(-1, &stat, WNOHANG)) > 0);
 }

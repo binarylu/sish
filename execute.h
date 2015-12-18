@@ -6,6 +6,6 @@
 #define BUFFSIZE 1024
 
 int execute(struct program *proglist);
-int transfer(int fd_from, int fd_to);
+void handle_sigchild(int signo);
 
 #endif

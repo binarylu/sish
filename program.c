@@ -14,7 +14,6 @@ prog_create(void)
         prog->outfd = 1;
         prog->errfd = 2;
         prog->bg = 0;
-        prog->isrunning = 0;
         return prog;
 }
 

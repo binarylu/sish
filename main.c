@@ -8,6 +8,7 @@
 #include <string.h>
 #include <unistd.h>
 
+#include "public.h"
 #include "program.h"
 #include "execute.h"
 
@@ -103,6 +104,7 @@ mainloop(void)
 int
 main(int argc, char *argv[])
 {
+    struct sigaction act;
         char *cmdline;
         char ch;
 
@@ -125,6 +127,10 @@ main(int argc, char *argv[])
         }
         argc -= optind;
         argv += optind;
+
+        act.sa_handler = handle_sigchild;
+        act.sa_flags = SA_NOMASK;
+        sigaction(SIGCHLD, &act, NULL);
 
         if (cflag)
                 run_cmd(cmdline);
