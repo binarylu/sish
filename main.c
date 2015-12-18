@@ -2,6 +2,9 @@
 #include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
+#ifdef __linux
+#include <bsd/stdlib.h>
+#endif
 #include <string.h>
 #include <unistd.h>
 
@@ -15,8 +18,13 @@ static int cflag, xflag;
 static void
 usage(void)
 {
+#ifdef __linux
         (void)fprintf(stderr, "usage: %s [-x] [-c command]\n",
             getprogname());
+#else
+        (void)fprintf(stderr, "usage: %s [-x] [-c command]\n",
+            "sish");
+#endif
         exit(EXIT_FAILURE);
 }
 
@@ -98,7 +106,9 @@ main(int argc, char *argv[])
         char *cmdline;
         char ch;
 
+#ifdef __linux
         setprogname(argv[0]);
+#endif
         while ((ch = getopt(argc, argv, "xc:")) != -1) {
                 switch(ch) {
                 case 'c':

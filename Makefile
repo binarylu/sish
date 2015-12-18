@@ -9,5 +9,5 @@ clean :
 	rm sish
 
 sish : ${SRC} ${HDR}
-	gcc -g -Wall ${SRC} -o $@
+	gcc -g -Wall ${SRC} -o $@ -lbsd
 
