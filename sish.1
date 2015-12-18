@@ -1,3 +1,4 @@
+[program]
 parse:
         * seperate program package by '&'
         * handle foreground and background
@@ -22,7 +23,10 @@ parse:
 execute:
         INPUT: program list
 
-test cases:
+[limit]
+        TOKEN_MAX: max token number in a command line, currently 1024
+
+[test cases]
         [buildin]
         'exit'
         'exit '

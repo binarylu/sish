@@ -33,25 +33,43 @@ static int
 run_cmd(char *cmdline)
 {
         struct program *proglist, *prog;
+        char **arg;
+        char *dir;
         int retcode;
 
         retcode = 1;
         proglist = parse_progpack(cmdline);
 
-        /*if (xflag) {
-                for (prog = proglist; prog != NULL; prog = prog->next) {
-                        fprintf(stderr, "+ %s\n", prog->argv[0]);
-                }
-        }*/
-
         if (proglist != NULL)
         {
                 prog = proglist;
                 if (prog->next == NULL && prog->bg == 0 &&
-                                strcmp(prog->argv[0], "exit") == 0)
+                    strcmp(prog->argv[0], "exit") == 0) {
                         retcode = 0;
-                else
+                } else if (prog->next == NULL && strcmp(prog->argv[0], "cd") == 0) {
+                        dir = NULL;
+                        if (prog->argc == 1)
+                                dir = getenv("HOME");
+                        else if (prog->argc >= 2)
+                                dir = prog->argv[1];
+                        if (dir != NULL && *dir != '\0') {
+                                if (chdir(dir) == -1) {
+                                        set_exitcode(errno);
+                                        WARN("failed to change working directory to '%s'",
+                                               dir);
+                                }
+                        }
+                } else if (prog->next == NULL && strcmp(prog->argv[0], "echo") == 0) {
+                        for (arg = prog->argv + 1; *arg != NULL; ++arg) {
+                                printf("%s", *arg);
+                                if (*(arg + 1) != NULL)
+                                        printf(" ");
+                        }
+                        printf("\n");
+                        set_exitcode(0);
+                } else {
                         execute(proglist, xflag);
+                }
 
                 prog_destroy_all(&proglist);
         }
