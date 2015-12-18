@@ -110,7 +110,18 @@ execute(program *proglist)
 
     /* parent process */
     int w, status;
-    p = bg ? NULL : proglist;
+    static struct sigaction act, old_act;
+    if (bg) {
+        act.sa_handler = handle_sigchild;
+        act.sa_flags = SA_NOMASK;
+        sigaction(SIGCHLD, &act, &old_act);
+        p = NULL;
+    }
+    else {
+        sigaction(SIGCHLD, &old_act, NULL);
+        p = proglist;
+    }
+
     while (p) {
         w = waitpid(p->pid, &status, 0);
         if (w == -1) {
