@@ -37,11 +37,11 @@ run_cmd(char *cmdline)
         retcode = 1;
         proglist = parse_progpack(cmdline);
 
-        if (xflag) {
+        /*if (xflag) {
                 for (prog = proglist; prog != NULL; prog = prog->next) {
                         fprintf(stderr, "+ %s\n", prog->argv[0]);
                 }
-        }
+        }*/
 
         if (proglist != NULL)
         {
@@ -50,7 +50,7 @@ run_cmd(char *cmdline)
                                 strcmp(prog->argv[0], "exit") == 0)
                         retcode = 0;
                 else
-                        execute(proglist);
+                        execute(proglist, xflag);
 
                 prog_destroy_all(&proglist);
         }

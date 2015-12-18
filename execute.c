@@ -50,7 +50,7 @@ execute_program(struct program *prog)
 
 /* return 0 on success, -1 if error occurs */
 int
-execute(program *proglist)
+execute(program *proglist, int xflag)
 {
     int bg;
     program *p;
@@ -64,6 +64,8 @@ execute(program *proglist)
 
     p = proglist;
     while (p) {
+        if (xflag)
+            fprintf(stderr, "+ %s\n", p->argv[0]);
         if (p->next != NULL)
             if (pipe(pipe_fd) == -1) {
                 DEBUGP("pipe failed!");
